@@ -1,94 +1,124 @@
 import numpy as np
-from typing import List, Tuple
+from typing import List, Dict, Tuple
+
+
+def log_prob(prob: float) -> float:
+    """
+    Compute the logarithm of a probability safely.
+
+    Args:
+        prob (float): Probability value.
+
+    Returns:
+        float: Log probability. Returns -inf if prob is 0.
+    """
+    if prob == 0:
+        return -np.inf
+    return np.log(prob)
+
+
+def initialize_tables(
+    n_states: int,
+    n_obs: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Initialize the Viterbi tables (delta and psi).
+
+    Args:
+        n_states (int): Number of hidden states.
+        n_obs (int): Number of observations in the sequence.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]:
+            - delta: Probability table of shape (n_states, n_obs).
+            - psi: Backpointer table of shape (n_states, n_obs).
+    """
+    delta = np.full((n_states, n_obs), -np.inf)
+    psi = np.zeros((n_states, n_obs), dtype=int)
+    return delta, psi
 
 
 def viterbi(
-    observations: np.ndarray,
-    start_probs: np.ndarray,
-    transition_probs: np.ndarray,
-    emission_probs: np.ndarray,
-) -> Tuple[List[int], float]:
+    obs: List[str],
+    states: List[str],
+    start_p: Dict[str, float],
+    trans_p: Dict[str, Dict[str, float]],
+    emit_p: Dict[str, Dict[str, float]],
+) -> Tuple[List[str], float]:
     """
-    Implements the Viterbi algorithm to find the most likely sequence of
-    hidden states.
+    Viterbi Algorithm for HMM decoding.
 
     Args:
-        observations (np.ndarray): Array of observation indices of shape (T,).
-        start_probs (np.ndarray): Initial state probabilities of shape (N,).
-        transition_probs (np.ndarray): Transition probability matrix
-                                        of shape (N, N). transition_probs[i, j]
-                                        is P(state_j | state_i).
-        emission_probs (np.ndarray): Emission probability matrix of
-                                     shape (N, M). emission_probs[i, k] is
-                                     P(obs_k | state_i).
+        obs (List[str]): Sequence of observations.
+        states (List[str]): List of all possible states.
+        start_p (Dict[str, float]): Initial state probabilities.
+        trans_p (Dict[str, Dict[str, float]]): Transition probabilities.
+        emit_p (Dict[str, Dict[str, float]]): Emission probabilities.
 
     Returns:
-        Tuple[List[int], float]:
-            - The most likely sequence of state indices.
-            - The probability of that sequence.
-
-    Raises:
-        ValueError: If input dimensions are inconsistent.
+        Tuple[List[str], float]:
+            - Best path (sequence of states).
+            - Log probability of the best path.
     """
-    # Validate inputs
-    T = observations.shape[0]
-    N = start_probs.shape[0]
 
-    if transition_probs.shape != (N, N):
-        raise ValueError(
-            f"Transition matrix shape {transition_probs.shape}",
-            "must be ({N}, {N})",
-        )
+    # Convert parameters to log-space NumPy arrays
+    N = len(states)
+    T = len(obs)
 
-    # M is the number of possible observations, inferred from emission matrix
-    M = emission_probs.shape[1]
-    if emission_probs.shape[0] != N:
-        raise ValueError(
-            f"Emission matrix shape {emission_probs.shape} must be ({N}, {M})"
-        )
+    start_log_p = np.array([log_prob(start_p.get(s, 0.0)) for s in states])
+
+    trans_log_p = np.full((N, N), -np.inf)
+    for i, s_from in enumerate(states):
+        for j, s_to in enumerate(states):
+            # Use get with default 0.0 to handle missing transitions safely
+            prob = trans_p.get(s_from, {}).get(s_to, 0.0)
+            trans_log_p[i, j] = log_prob(prob)
+
+    emit_log_p = np.full((N, T), -np.inf)
+    for i, s in enumerate(states):
+        for t, o in enumerate(obs):
+            # Use get with default 0.0
+            prob = emit_p.get(s, {}).get(o, 0.0)
+            emit_log_p[i, t] = log_prob(prob)
 
     # Initialize tables
-    # viterbi_table[t, s] stores the max probability of being in state s at
-    # time t given the observations up to t and the most likely path ending
-    # in s
-    viterbi_table = np.zeros((T, N))
+    delta, psi = initialize_tables(N, T)
 
-    # backpointer[t, s] stores the state at time t-1 that maximized the
-    # probability for state s at time t
-    backpointer = np.zeros((T, N), dtype=int)
+    # Initialization step (t=0)
+    # delta[s, 0] = start_p[s] * emit_p[s][obs[0]]
+    # In log space: log(start_p[s]) + log(emit_p[s][obs[0]])
+    delta[:, 0] = start_log_p + emit_log_p[:, 0]
 
-    # 1. Initialization (t=0)
-    first_obs = observations[0]
-    viterbi_table[0, :] = start_probs * emission_probs[:, first_obs]
-
-    # 2. Recursion
+    # Recursion step
     for t in range(1, T):
-        obs = observations[t]
         for s in range(N):
-            # Calculate prob of transitioning to state s from each prior state
-            # prev_s P(path to prev_s) * P(prev_s -> s) * P(obs | s)
-            # Note: emission_probs[s, obs] is constant for the max over prev_s
+            # Calculate prob of reaching state s at time t from all possible
+            # prev states
+            # delta[prev_s, t-1] * trans_p[prev_s, s] * emit_p[s][obs[t]]
+            # Log space:
+            # delta[prev_s, t-1] + log(trans_p[prev_s, s]) + log(emit_p[s][obs[t]])
 
-            trans_probs = viterbi_table[t - 1, :] * transition_probs[:, s]
-            max_prev_prob = np.max(trans_probs)
+            # We want to find max over prev_s
+            # trans_log_p[:, s] is the column for transitioning TO s from all
+            # prev states
+            probs = delta[:, t - 1] + trans_log_p[:, s]
+            best_prev_s = np.argmax(probs)
 
-            viterbi_table[t, s] = max_prev_prob * emission_probs[s, obs]
-            backpointer[t, s] = np.argmax(trans_probs)
+            delta[s, t] = probs[best_prev_s] + emit_log_p[s, t]
+            psi[s, t] = best_prev_s
 
-    # 3. Termination
-    # The probability of the most likely path
-    best_path_prob = np.max(viterbi_table[T - 1, :])
-    # The last state of the most likely path
-    best_last_state = np.argmax(viterbi_table[T - 1, :])
+    # Termination
+    best_last_state = np.argmax(delta[:, T - 1])
+    best_path_prob = delta[best_last_state, T - 1]
 
-    # 4. Path Backtracking
-    best_path = [best_last_state]
-    current_state = best_last_state
-
-    # Loop backwards from T-1 down to 1
+    # Path reconstruction (Backtracking)
+    best_path_indices = [best_last_state]
     for t in range(T - 1, 0, -1):
-        prev_state = backpointer[t, current_state]
-        best_path.insert(0, prev_state)
-        current_state = prev_state
+        best_prev_s = psi[best_path_indices[-1], t]
+        best_path_indices.append(best_prev_s)
+
+    best_path_indices.reverse()
+
+    best_path = [states[i] for i in best_path_indices]
 
     return best_path, best_path_prob
