@@ -66,3 +66,13 @@ The implementation uses standard probability multiplication.
 - **Inputs**: NumPy arrays for observations, start probabilities, transition matrix, and emission matrix.
 - **Outputs**: The most likely sequence of state indices and its probability.
 - **Complexity**: $O(T \cdot N^2)$, where $T$ is the sequence length and $N$ is the number of states.
+
+## Contributors
+
+| Name | ID |
+|------|----|
+| Daniot Mihrete Woldetinsae | UGR/3005/15 |
+| Abel Erduino | UGR/6665/15 |
+| Abenezer Alebachew | UGR/4429/15 |
+| Abraham Dessalegn | UGR/9136/15 |
+
