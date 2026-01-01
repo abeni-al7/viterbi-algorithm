@@ -132,7 +132,7 @@ graph LR
     style R1 fill:#f9f,stroke:#333,stroke-width:4px
     style R2 fill:#f9f,stroke:#333,stroke-width:4px
     
-    linkStyle 2,3 stroke-width:4px,fill:none,stroke:red;
+    linkStyle 3,4 stroke-width:4px,fill:none,stroke:red;
 ```
 
 *Note: The thick/red lines indicate the chosen path (backpointers).*
