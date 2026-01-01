@@ -1,3 +1,12 @@
+## Contributors
+
+| Name | ID |
+|------|----|
+| Daniot Mihrete Woldetinsae | UGR/3005/15 |
+| Abel Erduino | UGR/6665/15 |
+| Abenezer Alebachew | UGR/4429/15 |
+| Abraham Dessalegn | UGR/9136/15 |
+
 # Viterbi Algorithm Implementation
 
 This project implements the Viterbi algorithm in Python using NumPy. It is designed to find the most likely sequence of hidden states (the Viterbi path) that results in a sequence of observed events.
@@ -67,12 +76,4 @@ The implementation uses standard probability multiplication.
 - **Outputs**: The most likely sequence of state indices and its probability.
 - **Complexity**: $O(T \cdot N^2)$, where $T$ is the sequence length and $N$ is the number of states.
 
-## Contributors
-
-| Name | ID |
-|------|----|
-| Daniot Mihrete Woldetinsae | UGR/3005/15 |
-| Abel Erduino | UGR/6665/15 |
-| Abenezer Alebachew | UGR/4429/15 |
-| Abraham Dessalegn | UGR/9136/15 |
 
