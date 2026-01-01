@@ -128,9 +128,9 @@ graph LR
     S1 -.->|0.6| S2
 
     %% Styling for the winning path
-    style S0 fill:#f9f,stroke:#333,stroke-width:4px
-    style R1 fill:#f9f,stroke:#333,stroke-width:4px
-    style R2 fill:#f9f,stroke:#333,stroke-width:4px
+    style S0 fill:#275EB7,stroke:#333,stroke-width:4px
+    style R1 fill:#275EB7,stroke:#333,stroke-width:4px
+    style R2 fill:#275EB7,stroke:#333,stroke-width:4px
     
     linkStyle 2,4 stroke-width:4px,fill:none,stroke:red;
 ```
